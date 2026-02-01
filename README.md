@@ -15,11 +15,11 @@ Chirality is a fundamental molecular property that governs stereospecific behavi
 - **Cross-attention**: Integrates stereochemical information from local chiral centers into the global molecular representation
 - **Unified architecture**: Jointly encodes central and axial chirality
 
-<img src="https://github.com/Meteor-han/ChiDeK/blob/main/model.png" alt="model" style="zoom:30%;" />
+<img src="https://github.com/Meteor-han/ChiDeK/blob/main/model.png" alt="model" style="zoom:20%;" />
 
 How its representations change under rotations along the chiral axis for two molecules:
 
-<img src="https://github.com/Meteor-han/ChiDeK/blob/main/vis_rep.png" alt="model" style="zoom:30%;" />
+<img src="https://github.com/Meteor-han/ChiDeK/blob/main/vis_rep.png" alt="model" style="zoom:20%;" />
 
 The trajectory reflects a transition from one configuration to its opposite and then back to the original, while the cosine similarity plots show high similarity within the same configuration and vice versa.
 
@@ -42,9 +42,9 @@ The trajectory reflects a transition from one configuration to its opposite and 
 - `ecd_axial_index_split.pkl`: Train/val/test split indices
 - `axial_650.xlsx`: Chiral axis labels
 
-### Central Chirality (to be prepared)
+### Central Chirality
 
-The benchmark comes from [ChIRo](https://github.com/keiradams/ChIRo?tab=readme-ov-file).
+The benchmark comes from [ChIRo](https://github.com/keiradams/ChIRo?tab=readme-ov-file) and [ECDFormer](https://huggingface.co/datasets/OzymandisLi/ECDFormer_Datasets).
 
 - **R/S classification**: Requires `RS_train.pkl`, `RS_validation.pkl`, `RS_test.pkl` with columns `rdkit_mol_cistrans_stereo`, `RS_label_binary`
 - **Enantiomer ranking**: Requires `ranking_train.pkl`, `ranking_validation.pkl`, `ranking_test.pkl` with columns `rdkit_mol_cistrans_stereo`, `ID`, `top_score`
