@@ -7,14 +7,21 @@ Data and code for the paper **"Learning Molecular Chirality via Chiral Determina
 
 ## Overview
 
-**ChiDeK** (Chiral Determinant Kernels) is a framework that systematically integrates stereogenic information into molecular representation learning. Chirality is a fundamental molecular property that governs stereospecific behavior in chemistry and biology. Capturing chirality in machine learning models remains challenging due to the geometric complexity of stereochemical relationships and the limitations of traditional molecular representations that often lack explicit stereochemical encoding.
+Chirality is a fundamental molecular property that governs stereospecific behavior in chemistry and biology. Capturing chirality in machine learning models remains challenging due to the geometric complexity of stereochemical relationships and the limitations of traditional molecular representations that often lack explicit stereochemical encoding. Existing approaches to chiral molecular representation primarily focus on central chirality, relying on handcrafted stereochemical tags or limited 3D encodings, and thus fail to generalize to more complex forms, such as axial chirality.
 
-Existing approaches to chiral molecular representation primarily focus on central chirality, relying on handcrafted stereochemical tags or limited 3D encodings, and thus fail to generalize to more complex forms, such as axial chirality.
+**ChiDeK** (Chiral Determinant Kernels) is a framework that systematically integrates stereogenic information into molecular representation learning. It introduces:
 
-ChiDeK introduces:
 - **Chiral determinant kernel**: Encodes the SE(3)-invariant chirality matrix
 - **Cross-attention**: Integrates stereochemical information from local chiral centers into the global molecular representation
 - **Unified architecture**: Jointly encodes central and axial chirality
+
+<img src="https://github.com/Meteor-han/ChiDeK/blob/main/model.png" alt="model" style="zoom:30%;" />
+
+How its representations change under rotations along the chiral axis for two molecules:
+
+<img src="https://github.com/Meteor-han/ChiDeK/blob/main/vis_rep.png" alt="model" style="zoom:30%;" />
+
+The trajectory reflects a transition from one configuration to its opposite and then back to the original, while the cosine similarity plots show high similarity within the same configuration and vice versa.
 
 
 ## Requirements
@@ -36,6 +43,9 @@ ChiDeK introduces:
 - `axial_650.xlsx`: Chiral axis labels
 
 ### Central Chirality (to be prepared)
+
+The benchmark comes from [ChIRo](https://github.com/keiradams/ChIRo?tab=readme-ov-file).
+
 - **R/S classification**: Requires `RS_train.pkl`, `RS_validation.pkl`, `RS_test.pkl` with columns `rdkit_mol_cistrans_stereo`, `RS_label_binary`
 - **Enantiomer ranking**: Requires `ranking_train.pkl`, `ranking_validation.pkl`, `ranking_test.pkl` with columns `rdkit_mol_cistrans_stereo`, `ID`, `top_score`
 - **Central ECD**: Requires `hct_ecd.pkl` with peak number, position, height labels
@@ -46,37 +56,33 @@ Use `--data_dir` to specify the data directory (default: `data/`).
 
 Run from the `src/` directory, examples are:
 
-```bash
-cd src
-```
-
 ### 1. Central Chirality
 
 **R/S classification**
 ```bash
-python main_RS.py --bs 256 --lr 1e-4 --epochs 5 --use_qr --proj_dim 128 --hidden_dim 256 --num_layers 8 --device cuda:0
+python main_RS.py --bs 256 --lr 1e-4 --epochs 5 --use_qr --proj_dim 128 --hidden_dim 256 --num_layers 8 --device 0
 ```
 
 **Enantiomer ranking**
 ```bash
-python main_ranking.py --bs 128 --lr 1e-4 --epochs 30 --use_qr --proj_dim 256 --hidden_dim 512 --num_layers 8 --device cuda:0
+python main_ranking.py --bs 256 --lr 1e-4 --epochs 30 --use_qr --proj_dim 128 --hidden_dim 256 --num_layers 8 --device 0
 ```
 
 **ECD spectrum prediction (central)**
 ```bash
-python main_ecd.py --bs 32 --lr 5e-4 --epochs 10 --use_qr --proj_dim 128 --hidden_dim 256 --num_layers 8 --device cuda:0
+python main_ecd.py --bs 256 --lr 5e-4 --epochs 10 --use_qr --proj_dim 128 --hidden_dim 256 --num_layers 8 --device 0
 ```
 
 ### 2. Axial Chirality
 
 **ECD spectrum prediction (axial)**
 ```bash
-python main_ecd_axial.py --bs 32 --lr 1e-4 --epochs 20 --use_qr --proj_dim 256 --hidden_dim 512 --num_layers 8 --device cuda:0
+python main_ecd_axial.py --bs 32 --lr 5e-4 --epochs 20 --use_qr --proj_dim 128 --hidden_dim 256 --num_layers 8 --device 0
 ```
 
 **Optical rotation prediction (axial)**
 ```bash
-python main_optical_axial.py --bs 32 --lr 1e-4 --epochs 20 --use_qr --proj_dim 128 --hidden_dim 256 --num_layers 8 --device cuda:0
+python main_optical_axial.py --bs 32 --lr 5e-4 --epochs 20 --use_qr --proj_dim 128 --hidden_dim 256 --num_layers 8 --device 0
 ```
 
 
