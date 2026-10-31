@@ -159,7 +159,7 @@ def train_hct(train_data, val_data, test_data, args):
 
     model = HCTModel(d_model=args.hidden_dim, n_heads=args.num_heads, num_layers=args.num_layers,
                      proj_dim=args.proj_dim, chiral_encoder=args.chiral_encoder,
-                     num_peaks=9, use_qr=use_qr, ecd=True).to(device)
+                     num_peaks=9, use_qr=use_qr, orientation_correction=args.orientation_correction, ecd=True).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     best_acc = [None, float('-inf'), None]  # train_loss, val_loss, test_res

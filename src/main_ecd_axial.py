@@ -155,7 +155,7 @@ def train_hct(train_data, val_data, test_data, args):
     test_loader = DataLoader(test_data, batch_size=args.bs, num_workers=args.num_workers, shuffle=False, collate_fn=collate_hct_ecd)
         
     model = HCTModel(d_model=args.hidden_dim, n_heads=args.num_heads, num_layers=args.num_layers, proj_dim=args.proj_dim, 
-                     chiral_encoder=args.chiral_encoder, use_qr=args.use_qr, ecd=True).to(args.device)
+                     chiral_encoder=args.chiral_encoder, use_qr=args.use_qr, orientation_correction=args.orientation_correction, ecd=True).to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=args.min_lr)
 

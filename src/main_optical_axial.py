@@ -76,7 +76,7 @@ def train_hct(train_data, val_data, test_data, args):
     test_loader = DataLoader(test_data, batch_size=args.bs, shuffle=False, collate_fn=collate_hct)
 
     model = HCTModel(d_model=args.hidden_dim, n_heads=args.num_heads, num_layers=args.num_layers, proj_dim=args.proj_dim, 
-                     chiral_encoder=args.chiral_encoder, use_qr=args.use_qr, ecd=False, num_classes=args.num_classes).to(args.device)
+                     chiral_encoder=args.chiral_encoder, use_qr=args.use_qr, orientation_correction=args.orientation_correction, ecd=False, num_classes=args.num_classes).to(args.device)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     loss_fn = torch.nn.CrossEntropyLoss()

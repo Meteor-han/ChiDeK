@@ -304,7 +304,7 @@ class HCTModel(nn.Module):
                  d_model=256, n_heads=8, num_layers=4, mlp_ratio=4.0, dropout=0.1, num_rbfs=128, 
                  proj_dim=64, chiral_encoder="Kernel",
                  num_peaks=7, num_pos=20,
-                 use_qr=False, ecd=False, num_classes=1):
+                 use_qr=False, ecd=False, num_classes=1, orientation_correction=False):
         super().__init__()
         self.ecd = ecd
         self.d_model = d_model
@@ -316,7 +316,7 @@ class HCTModel(nn.Module):
         self.gbf = GaussianLayer(num_rbfs, edge_types=3)
         self.rbf_nonlinear = NonLinearHead(num_rbfs, n_heads, "gelu")
 
-        self.q_embed = CDKernelVolume(proj_dim=proj_dim, chiral_encoder=chiral_encoder, K=d_model, use_qr=use_qr, ecd=ecd)  # for chiral centers (queries)
+        self.q_embed = CDKernelVolume(proj_dim=proj_dim, chiral_encoder=chiral_encoder, K=d_model, use_qr=use_qr, ecd=ecd, orientation_correction=orientation_correction)  # for chiral centers (queries)
         # add a learnable chiral token to queries
         self.chiral_token = nn.Parameter(torch.randn(1, 1, d_model))
         # initialize token
@@ -508,13 +508,14 @@ class CDKernelVolume(nn.Module):
     input: (x, y, z)
     output: [B, Q, K] embedding, orthogonalization regularization loss
     """
-    def __init__(self, in_dim=3, proj_dim=64, chiral_encoder="Kernel", K=128, use_qr=False, ecd=False):
+    def __init__(self, in_dim=3, proj_dim=64, chiral_encoder="Kernel", K=128, use_qr=False, ecd=False, orientation_correction=False):
         super().__init__()
         self.ecd = ecd
         self.K = K
         self.in_dim = in_dim
         self.proj_dim = proj_dim
         self.use_qr = use_qr
+        self.orientation_correction = orientation_correction
         self.chiral_encoder = chiral_encoder
         if chiral_encoder == "Kernel":
             self.weight = nn.Parameter(torch.randn(K, in_dim, proj_dim))
@@ -528,6 +529,11 @@ class CDKernelVolume(nn.Module):
         # P: [proj_dim, 3]
         Q, _ = torch.linalg.qr(P)
         return Q
+
+    @staticmethod
+    def orientation_sign(reference, Qmat):
+        with torch.no_grad():
+            return torch.linalg.slogdet(reference.transpose(-1, -2) @ Qmat).sign
 
     def forward(self, chiral_feats, q_mask=None):
         if self.chiral_encoder == "Linear":
@@ -552,6 +558,17 @@ class CDKernelVolume(nn.Module):
             Q_orth, _ = torch.linalg.qr(W_t)  # Q: [K, proj_dim, in_dim]
             W = Q_orth.transpose(1, 2)  # [K, in_dim, proj_dim]
 
+        if self.orientation_correction:
+            # orientation correction
+            with torch.no_grad():
+                if self.use_qr:
+                    U = W.transpose(1, 2)  # already orthonormal; reference B = I
+                else:
+                    U, B_ref = torch.linalg.qr(W.transpose(1, 2), mode='reduced')
+                    signs = torch.where(B_ref.diagonal(dim1=-2, dim2=-1) < 0, -1., 1.)
+                    U = U * signs.unsqueeze(-2)  # positive-diagonal reference QR
+                U_flat = U.unsqueeze(0).unsqueeze(0).expand(B, Q, -1, -1, -1).reshape(-1, P, 3)
+
         x = x.unsqueeze(2).expand(-1, -1, self.K, -1) 
         y = y.unsqueeze(2).expand(-1, -1, self.K, -1) 
         z = z.unsqueeze(2).expand(-1, -1, self.K, -1)
@@ -573,7 +590,10 @@ class CDKernelVolume(nn.Module):
             V_batch = V.reshape(BQK, P, 3)
             V_batch = V_batch + 1e-8 * torch.randn_like(V_batch)  # Jitter for numerical stability
             Qmat, R = torch.linalg.qr(V_batch, mode='reduced')  # Qmat: [BQK, P, 3], R: [BQK, 3, 3]
-            signed_vol_full = torch.linalg.det(R).view(B, Q, K)
+            signed_vol = torch.linalg.det(R)
+            if self.orientation_correction:
+                signed_vol = self.orientation_sign(U_flat, Qmat) * signed_vol
+            signed_vol_full = signed_vol.view(B, Q, K)
         else:
             V_flat = V.reshape(B, Q, K, P, 3)  # [B, Q, K, P, 3]
 
@@ -584,9 +604,11 @@ class CDKernelVolume(nn.Module):
             V_valid = V_valid + 1e-8 * torch.randn_like(V_valid)  # Jitter for numerically stable QR
             Qmat, R = torch.linalg.qr(V_valid, mode='reduced')  # [num_valid, P, 3], [num_valid, 3, 3]
             signed_vol_valid = torch.linalg.det(R)
+            if self.orientation_correction:
+                signed_vol_valid = self.orientation_sign(U_flat[mask_flat.bool()], Qmat) * signed_vol_valid
 
             # Scatter back to full tensor
-            signed_vol_full = torch.zeros(B*Q*K, device=V.device)
+            signed_vol_full = V.new_zeros(B*Q*K)
             signed_vol_full[mask_flat.bool()] = signed_vol_valid
             signed_vol_full = signed_vol_full.view(B, Q, K)  # [B, Q, K]
 

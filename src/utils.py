@@ -364,6 +364,7 @@ def get_args():
 
     # model structure
     parser.add_argument('--use_qr', action='store_true', help='Use QR orthogonalization in CDKernelVolume')
+    parser.add_argument('--orientation_correction', action='store_true', help='Align volume QR orientation with the effective projection (default: disabled)')
     parser.add_argument('--reg_lambda', type=float, default=1., help='Orthogonalization regularization weight')
     parser.add_argument('--use_orth_reg', action='store_true', help='Add orthogonalization regularization to loss')
     parser.add_argument('--chiral_encoder', type=str, default="Kernel", help='Chiral encoder type', choices=["Kernel", "Linear"])
